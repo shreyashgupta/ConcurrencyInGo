@@ -3,115 +3,76 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/fatih/color"
 )
 
-type Philospher struct {
+type Philosopher struct {
 	id        int
 	prodColor color.Attribute
 }
 
-type Fork struct {
-	id        int
-	available bool
-	channel   chan bool
-	lock      sync.Mutex
+var forks [5]chan bool
+
+func PutDownFork(id int) {
+	<-forks[id]
 }
 
-func (fork *Fork) pickup() {
-	fork.lock.Lock()
-	defer fork.lock.Unlock()
-	fork.available = false
+func PickUpFork(id int) {
+	forks[id] <- true
 }
 
-func (fork *Fork) isAvailable() bool {
-	fork.lock.Lock()
-	defer fork.lock.Unlock()
-	return fork.available
-}
-
-func (fork *Fork) makeAvailable() {
-	fork.lock.Lock()
-	defer fork.lock.Unlock()
-	fork.available = true
-}
-
-func (fork *Fork) informAvailability() {
-	if len(fork.channel) == 0 {
-		fork.channel <- true
+func CreatePhilosopher(id int, color color.Attribute) *Philosopher {
+	return &Philosopher{
+		id:        id,
+		prodColor: color,
 	}
 }
 
-var forks [5]Fork
-
-var forksLock sync.Mutex
-
-func (philospher *Philospher) Eat() {
-	colorPrint := color.New(philospher.prodColor).PrintfFunc()
-	colorPrint("Philosopher %d is eating\n", philospher.id)
-	eatTime := 2 + rand.Intn(5)
+func (philosopher *Philosopher) Eat() {
+	colorPrint := color.New(philosopher.prodColor).PrintfFunc()
+	colorPrint("Philosopher %d is eating\n", philosopher.id)
+	eatTime := 1 + rand.Intn(1)
 	time.Sleep(time.Second * time.Duration(eatTime))
-	colorPrint("Philosopher %d is done eating\n", philospher.id)
-
-	philospher.PutDownForks()
+	colorPrint("Philosopher %d is done eating\n", philosopher.id)
 }
 
-func (philospher *Philospher) PutDownForks() {
-	colorPrint := color.New(philospher.prodColor).PrintfFunc()
-	forks[philospher.id].makeAvailable()
-	forks[(philospher.id+1)%5].makeAvailable()
-	forks[philospher.id].informAvailability()
-	forks[(philospher.id+1)%5].informAvailability()
-	colorPrint("Philosopher %d has put down forks %d and %d\n", philospher.id, philospher.id, (philospher.id+1)%5)
+func (philosopher *Philosopher) PutDownForks() {
+	left := philosopher.id
+	right := (philosopher.id + 1) % 5
+	PutDownFork(left)
+	PutDownFork(right)
+	colorPrint := color.New(philosopher.prodColor).PrintfFunc()
+	colorPrint("Philosopher %d has put down forks %d and %d\n", philosopher.id, left, right)
 }
 
-func (philospher *Philospher) Hungry() {
+func (philosopher *Philosopher) Think() {
+	colorPrint := color.New(philosopher.prodColor).PrintfFunc()
+	colorPrint("Philosopher %d is thinking\n", philosopher.id)
+	thinkTime := 1 + rand.Intn(2)
+	time.Sleep(time.Second * time.Duration(thinkTime))
+}
+
+func (philosopher *Philosopher) Hungry() {
 	for {
-		colorPrint := color.New(philospher.prodColor).PrintfFunc()
-		colorPrint("Philosopher %d is hungry\n", philospher.id)
-		left := philospher.id
-		right := (philospher.id + 1) % 5
-		select {
-		case <-forks[left].channel:
-			{
-				forksLock.Lock()
-				canEat := false
-				if forks[left].isAvailable() && forks[right].isAvailable() {
-					forks[left].pickup()
-					forks[right].pickup()
-					canEat = true
-				} else {
-					colorPrint("Philosopher %d is can't eat, going back to thinking\n", philospher.id)
-				}
-				forksLock.Unlock()
-				if canEat {
-					philospher.Eat()
-					colorPrint("Philosopher %d is thinking\n", philospher.id)
-				}
-			}
-		case <-forks[right].channel:
-			{
-				forksLock.Lock()
-				canEat := false
-				if forks[left].isAvailable() && forks[right].isAvailable() {
-					forks[left].pickup()
-					forks[right].pickup()
-					canEat = true
-				} else {
-					colorPrint("Philosopher %d is can't eat, going back to thinking\n", philospher.id)
-				}
-				forksLock.Unlock()
-				if canEat {
-					philospher.Eat()
-					colorPrint("Philosopher %d is thinking\n", philospher.id)
-				}
-			}
+		colorPrint := color.New(philosopher.prodColor).PrintfFunc()
+		colorPrint("Philosopher %d is hungry\n", philosopher.id)
+		left := philosopher.id
+		right := (philosopher.id + 1) % 5
 
+		// To mitigate circular deadlock
+		if left > right {
+			left, right = right, left
 		}
-		time.Sleep(5 * time.Second)
+
+		PickUpFork(left)
+		colorPrint("Philosopher %d picked up fork %d\n", philosopher.id, left)
+		PickUpFork(right)
+		colorPrint("Philosopher %d picked up fork %d\n", philosopher.id, right)
+		philosopher.Eat()
+		philosopher.PutDownForks()
+		philosopher.Think()
 	}
 }
 
@@ -119,66 +80,30 @@ func main() {
 
 	fmt.Println("Stating the feast")
 
-	Philospher0 := Philospher{
-		id:        0,
-		prodColor: color.FgBlue,
-	}
-	Philospher1 := Philospher{
-		id:        1,
-		prodColor: color.FgGreen,
-	}
-	Philospher2 := Philospher{
-		id:        2,
-		prodColor: color.FgHiMagenta,
-	}
-	Philospher3 := Philospher{
-		id:        3,
-		prodColor: color.FgRed,
-	}
-	Philospher4 := Philospher{
-		id:        4,
-		prodColor: color.FgHiYellow,
+	philosopher0 := CreatePhilosopher(0, color.FgBlue)
+
+	philosopher1 := CreatePhilosopher(1, color.FgGreen)
+
+	philosopher2 := CreatePhilosopher(2, color.FgMagenta)
+
+	philosopher3 := CreatePhilosopher(3, color.FgRed)
+
+	philosopher4 := CreatePhilosopher(4, color.FgYellow)
+
+	forks = [5]chan bool{
+		make(chan bool, 1),
+		make(chan bool, 1),
+		make(chan bool, 1),
+		make(chan bool, 1),
+		make(chan bool, 1),
 	}
 
-	go Philospher0.Hungry()
-	go Philospher1.Hungry()
-	go Philospher2.Hungry()
-	go Philospher3.Hungry()
-	go Philospher4.Hungry()
+	go philosopher0.Hungry()
+	go philosopher1.Hungry()
+	go philosopher2.Hungry()
+	go philosopher3.Hungry()
+	go philosopher4.Hungry()
 
-	forks = [5]Fork{
-		Fork{
-			id:        0,
-			available: true,
-			channel:   make(chan bool, 1),
-		},
-		Fork{
-			id:        1,
-			available: true,
-			channel:   make(chan bool, 1),
-		},
-		Fork{
-			id:        2,
-			available: true,
-			channel:   make(chan bool, 1),
-		},
-		Fork{
-			id:        3,
-			available: true,
-			channel:   make(chan bool, 1),
-		},
-		Fork{
-			id:        4,
-			available: true,
-			channel:   make(chan bool, 1),
-		},
-	}
-
-	go forks[0].informAvailability()
-	go forks[1].informAvailability()
-	go forks[2].informAvailability()
-	go forks[3].informAvailability()
-	go forks[4].informAvailability()
 	x := make(chan bool)
 	x <- true
 }
