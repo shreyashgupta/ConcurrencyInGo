@@ -65,13 +65,21 @@ func (philosopher *Philosopher) Hungry() {
 		if left > right {
 			left, right = right, left
 		}
-
+		// Philosopher tries to pick up the left fork
 		PickUpFork(left)
 		colorPrint("Philosopher %d picked up fork %d\n", philosopher.id, left)
+
+		// Philosopher tries to pick up the right fork
 		PickUpFork(right)
 		colorPrint("Philosopher %d picked up fork %d\n", philosopher.id, right)
+
+		// Now that both forks are with philosopher, he starts to eat
 		philosopher.Eat()
+
+		// Once philospher is done eating, release both the forks
 		philosopher.PutDownForks()
+
+		// After releasing both forks, philosopher goes back to thinking
 		philosopher.Think()
 	}
 }
@@ -104,6 +112,8 @@ func main() {
 	go philosopher3.Hungry()
 	go philosopher4.Hungry()
 
+	// Block the main function to know if other go routines
+	// got into a deadlock
 	x := make(chan bool)
 	x <- true
 }
