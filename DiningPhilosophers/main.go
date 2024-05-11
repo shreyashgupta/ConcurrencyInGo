@@ -16,10 +16,14 @@ type Philosopher struct {
 var forks [5]chan bool
 
 func PutDownFork(id int) {
+	// Empty the fork channel
 	<-forks[id]
 }
 
 func PickUpFork(id int) {
+	// Try to insert into the fork channel,
+	// this will block until channel is empty
+	// i.e no other philosopher has a hold on it
 	forks[id] <- true
 }
 
@@ -39,6 +43,7 @@ func (philosopher *Philosopher) Eat() {
 }
 
 func (philosopher *Philosopher) PutDownForks() {
+	// This function empties the left and right fork channel
 	left := philosopher.id
 	right := (philosopher.id + 1) % 5
 	PutDownFork(left)
