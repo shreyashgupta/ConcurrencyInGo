@@ -10,7 +10,7 @@ import (
 
 type Philosopher struct {
 	id        int
-	prodColor color.Attribute
+	prodColor *color.Color
 }
 
 var forks [5]chan bool
@@ -27,7 +27,7 @@ func PickUpFork(id int) {
 	forks[id] <- true
 }
 
-func CreatePhilosopher(id int, color color.Attribute) *Philosopher {
+func CreatePhilosopher(id int, color *color.Color) *Philosopher {
 	return &Philosopher{
 		id:        id,
 		prodColor: color,
@@ -35,11 +35,11 @@ func CreatePhilosopher(id int, color color.Attribute) *Philosopher {
 }
 
 func (philosopher *Philosopher) Eat() {
-	colorPrint := color.New(philosopher.prodColor).PrintfFunc()
-	colorPrint("Philosopher %d is eating\n", philosopher.id)
+	// colorPrint := color.New(philosopher.prodColor).PrintfFunc()
+	philosopher.prodColor.Printf("Philosopher %d is eating\n", philosopher.id)
 	eatTime := 1 + rand.Intn(1)
 	time.Sleep(time.Second * time.Duration(eatTime))
-	colorPrint("Philosopher %d is done eating\n", philosopher.id)
+	philosopher.prodColor.Printf("Philosopher %d is done eating\n", philosopher.id)
 }
 
 func (philosopher *Philosopher) PutDownForks() {
@@ -48,21 +48,18 @@ func (philosopher *Philosopher) PutDownForks() {
 	right := (philosopher.id + 1) % 5
 	PutDownFork(left)
 	PutDownFork(right)
-	colorPrint := color.New(philosopher.prodColor).PrintfFunc()
-	colorPrint("Philosopher %d has put down forks %d and %d\n", philosopher.id, left, right)
+	philosopher.prodColor.Printf("Philosopher %d has put down forks %d and %d\n", philosopher.id, left, right)
 }
 
 func (philosopher *Philosopher) Think() {
-	colorPrint := color.New(philosopher.prodColor).PrintfFunc()
-	colorPrint("Philosopher %d is thinking\n", philosopher.id)
+	philosopher.prodColor.Printf("Philosopher %d is thinking\n", philosopher.id)
 	thinkTime := 1 + rand.Intn(2)
 	time.Sleep(time.Second * time.Duration(thinkTime))
 }
 
 func (philosopher *Philosopher) Hungry() {
 	for {
-		colorPrint := color.New(philosopher.prodColor).PrintfFunc()
-		colorPrint("Philosopher %d is hungry\n", philosopher.id)
+		philosopher.prodColor.Printf("Philosopher %d is hungry\n", philosopher.id)
 		left := philosopher.id
 		right := (philosopher.id + 1) % 5
 
@@ -72,11 +69,11 @@ func (philosopher *Philosopher) Hungry() {
 		}
 		// Philosopher tries to pick up the left fork
 		PickUpFork(left)
-		colorPrint("Philosopher %d picked up fork %d\n", philosopher.id, left)
+		philosopher.prodColor.Printf("Philosopher %d picked up fork %d\n", philosopher.id, left)
 
 		// Philosopher tries to pick up the right fork
 		PickUpFork(right)
-		colorPrint("Philosopher %d picked up fork %d\n", philosopher.id, right)
+		philosopher.prodColor.Printf("Philosopher %d picked up fork %d\n", philosopher.id, right)
 
 		// Now that both forks are with philosopher, he starts to eat
 		philosopher.Eat()
@@ -93,15 +90,17 @@ func main() {
 
 	fmt.Println("Stating the feast")
 
-	philosopher0 := CreatePhilosopher(0, color.FgBlue)
+	philosopher0 := CreatePhilosopher(0, color.New(color.FgBlue))
 
-	philosopher1 := CreatePhilosopher(1, color.FgGreen)
+	philosopher1 := CreatePhilosopher(1, color.New(color.FgGreen))
 
-	philosopher2 := CreatePhilosopher(2, color.FgMagenta)
+	philosopher2 := CreatePhilosopher(2, color.New(color.FgMagenta))
 
-	philosopher3 := CreatePhilosopher(3, color.FgRed)
+	philosopher3 := CreatePhilosopher(3, color.New(color.FgRed))
 
-	philosopher4 := CreatePhilosopher(4, color.FgYellow)
+	philosopher4 := CreatePhilosopher(4, color.New(color.FgYellow))
+
+	color.New(color.BgBlue)
 
 	forks = [5]chan bool{
 		make(chan bool, 1),
