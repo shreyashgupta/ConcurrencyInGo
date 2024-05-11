@@ -35,26 +35,34 @@ func CreatePhilosopher(id int, color *color.Color) *Philosopher {
 }
 
 func (philosopher *Philosopher) Eat() {
-	// colorPrint := color.New(philosopher.prodColor).PrintfFunc()
 	philosopher.prodColor.Printf("Philosopher %d is eating\n", philosopher.id)
 	eatTime := 1 + rand.Intn(1)
 	time.Sleep(time.Second * time.Duration(eatTime))
 	philosopher.prodColor.Printf("Philosopher %d is done eating\n", philosopher.id)
 }
 
-func (philosopher *Philosopher) PutDownForks() {
+func (philosopher *Philosopher) Think() {
+	philosopher.prodColor.Printf("Philosopher %d is thinking\n", philosopher.id)
+	thinkTime := 1 + rand.Intn(2)
+	time.Sleep(time.Second * time.Duration(thinkTime))
+}
+
+func (philosopher *Philosopher) PutDownForks(left, right int) {
 	// This function empties the left and right fork channel
-	left := philosopher.id
-	right := (philosopher.id + 1) % 5
 	PutDownFork(left)
 	PutDownFork(right)
 	philosopher.prodColor.Printf("Philosopher %d has put down forks %d and %d\n", philosopher.id, left, right)
 }
 
-func (philosopher *Philosopher) Think() {
-	philosopher.prodColor.Printf("Philosopher %d is thinking\n", philosopher.id)
-	thinkTime := 1 + rand.Intn(2)
-	time.Sleep(time.Second * time.Duration(thinkTime))
+func (philosopher *Philosopher) PickUpForks(left, right int) {
+
+	// Philosopher tries to pick up the left fork
+	PickUpFork(left)
+	philosopher.prodColor.Printf("Philosopher %d picked up fork %d\n", philosopher.id, left)
+
+	// Philosopher tries to pick up the right fork
+	PickUpFork(right)
+	philosopher.prodColor.Printf("Philosopher %d picked up fork %d\n", philosopher.id, right)
 }
 
 func (philosopher *Philosopher) Hungry() {
@@ -67,19 +75,15 @@ func (philosopher *Philosopher) Hungry() {
 		if left > right {
 			left, right = right, left
 		}
-		// Philosopher tries to pick up the left fork
-		PickUpFork(left)
-		philosopher.prodColor.Printf("Philosopher %d picked up fork %d\n", philosopher.id, left)
 
-		// Philosopher tries to pick up the right fork
-		PickUpFork(right)
-		philosopher.prodColor.Printf("Philosopher %d picked up fork %d\n", philosopher.id, right)
+		// Philospher tries to pick up forks
+		philosopher.PickUpForks(left, right)
 
 		// Now that both forks are with philosopher, he starts to eat
 		philosopher.Eat()
 
 		// Once philospher is done eating, release both the forks
-		philosopher.PutDownForks()
+		philosopher.PutDownForks(left, right)
 
 		// After releasing both forks, philosopher goes back to thinking
 		philosopher.Think()
