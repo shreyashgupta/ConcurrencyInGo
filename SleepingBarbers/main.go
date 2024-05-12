@@ -15,70 +15,122 @@ type Customer struct {
 }
 
 type Barber struct {
-	name        string
-	barberColor *color.Color
+	name  string
+	skill int
+}
+
+type Salon struct {
+	numBarbers     int
+	chairs         chan *Customer
+	closedChan     chan bool
+	barberDoneChan chan bool
+	open           bool
+	unservedCount  int
+	openDuration   time.Duration
+}
+
+func CreateSalon(capacity, numBarbers, openDurationSec int) *Salon {
+	return &Salon{
+		numBarbers:     numBarbers,
+		chairs:         make(chan *Customer, capacity),
+		closedChan:     make(chan bool),
+		barberDoneChan: make(chan bool),
+		open:           false,
+		unservedCount:  0,
+		openDuration:   time.Second * time.Duration(openDurationSec),
+	}
+}
+
+func (salon *Salon) Open() {
+	salon.open = true
+	color.Cyan("Salon is open for business !")
+
+	for i := 0; i < salon.numBarbers; i++ {
+		barber := CreateBarber(fake.FirstName(), 1+rand.Intn(2))
+		go barber.Serve(salon)
+	}
+}
+
+func (salon *Salon) Close() {
+	color.Yellow("Salon is closing for the day")
+	salon.closedChan <- true
+	close(salon.chairs)
+	salon.open = false
+	color.Magenta("Waiting for babers to finish up, still %d customers left\n", len(salon.chairs))
+	for i := 0; i < salon.numBarbers; i++ {
+		<-salon.barberDoneChan
+	}
+	color.Yellow("Salon is closed for the day")
+	color.Yellow("%d Customer were unserved", salon.unservedCount)
+	close(salon.closedChan)
+	close(salon.barberDoneChan)
 }
 
 func CreateCustomer(name string, hairLength int) *Customer {
 	return &Customer{
-		name:       name,
-		hairLength: hairLength,
+		name,
+		hairLength,
 	}
 }
 
-func CreateBarber(name string, color *color.Color) *Barber {
+func CreateBarber(name string, skill int) *Barber {
 	return &Barber{
-		name:        name,
-		barberColor: color,
+		name,
+		skill,
 	}
 }
 
-var chairs chan *Customer
+func (barber *Barber) LeaveForTheDay(salon *Salon) {
+	color.Magenta("%s is done for the day", barber.name)
+	salon.barberDoneChan <- true
+}
 
-func CreateAndSendCustomers(leftCount *int) {
+func (barber *Barber) Serve(salon *Salon) {
+	fmt.Printf("%s is available to attend customer!\n", barber.name)
+
+	for {
+		customer, salonOpen := <-salon.chairs
+
+		if salonOpen {
+			fmt.Printf("%s is cutting hairs of %s \n", barber.name, customer.name)
+			time.Sleep(time.Second * time.Duration(customer.hairLength))
+			fmt.Printf(" - Customer %s is all groomed\n", customer.name)
+		} else {
+			barber.LeaveForTheDay(salon)
+			return
+		}
+	}
+}
+
+func CreateAndSendCustomers(salon *Salon) {
 
 	for {
 		customer := CreateCustomer(fake.FirstName(), 2+rand.Intn(5))
 
 		select {
-		case chairs <- customer:
+		case <-salon.closedChan:
+			color.Red("Stopped sending new customers")
+			return
+		case salon.chairs <- customer:
 		default:
-			*leftCount = *leftCount + 1
-			fmt.Printf("No space available, customer %s is leaving\n", customer.name)
+			salon.unservedCount++
+			color.Red("No space available, customer %s is leaving\n", customer.name)
 		}
 		time.Sleep(time.Millisecond * 500)
 	}
-
 }
 
-func (barber *Barber) Serve() {
-	barber.barberColor.Printf("%s is available to attend customer!\n", barber.name)
-
-	for {
-		customer := <-chairs
-		barber.barberColor.Printf("Attending customer %s \n", customer.name)
-		time.Sleep(time.Second * time.Duration(customer.hairLength))
-		barber.barberColor.Printf("Customer %s is all groomed\n", customer.name)
-	}
+func SignalEOD(salon *Salon) {
+	<-time.After(salon.openDuration)
+	salon.Close()
 }
 
 func main() {
-	var leftCount = 0
-	chairs = make(chan *Customer, 10)
 
-	barber0 := CreateBarber(fake.FirstName(), color.New(color.FgGreen))
-	barber1 := CreateBarber(fake.FirstName(), color.New(color.FgBlue))
-	barber2 := CreateBarber(fake.FirstName(), color.New(color.FgCyan))
+	salon := CreateSalon(10, 2, 10)
+	salon.Open()
 
-	go barber0.Serve()
-	go barber1.Serve()
-	go barber2.Serve()
+	go CreateAndSendCustomers(salon)
 
-	go CreateAndSendCustomers(&leftCount)
-
-	for {
-		time.Sleep(10 * time.Second)
-		colorPrint := color.New(color.FgHiRed).PrintfFunc()
-		colorPrint("%d customer left\n", leftCount)
-	}
+	SignalEOD(salon)
 }
