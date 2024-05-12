@@ -127,7 +127,7 @@ func SignalEOD(salon *Salon) {
 
 func main() {
 
-	salon := CreateSalon(10, 4, 10)
+	salon := CreateSalon(10, 4, 20)
 	salon.Open()
 
 	go CreateAndSendCustomers(salon)
