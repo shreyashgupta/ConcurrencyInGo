@@ -43,7 +43,7 @@ func CreateSalon(capacity, numBarbers, openDurationSec int) *Salon {
 
 func (salon *Salon) Open() {
 	salon.open = true
-	color.Cyan("Salon is open for business !")
+	color.Green("Salon is open for business !")
 
 	for i := 0; i < salon.numBarbers; i++ {
 		barber := CreateBarber(fake.FirstName(), 1+rand.Intn(2))
@@ -109,7 +109,7 @@ func CreateAndSendCustomers(salon *Salon) {
 
 		select {
 		case <-salon.closedChan:
-			color.Red("Stopped sending new customers")
+			color.Cyan("Stopped sending new customers")
 			return
 		case salon.chairs <- customer:
 		default:
@@ -127,7 +127,7 @@ func SignalEOD(salon *Salon) {
 
 func main() {
 
-	salon := CreateSalon(10, 2, 10)
+	salon := CreateSalon(10, 3, 10)
 	salon.Open()
 
 	go CreateAndSendCustomers(salon)
