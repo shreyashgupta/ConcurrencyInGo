@@ -15,53 +15,53 @@ type Philosopher struct {
 
 var forks [5]chan bool
 
-func PutDownFork(id int) {
+func putDownFork(id int) {
 	// Empty the fork channel
 	<-forks[id]
 }
 
-func PickUpFork(id int) {
+func pickUpFork(id int) {
 	// Try to insert into the fork channel,
 	// this will block until channel is empty
 	// i.e no other philosopher has a hold on it
 	forks[id] <- true
 }
 
-func CreatePhilosopher(id int, color *color.Color) *Philosopher {
+func createPhilosopher(id int, color *color.Color) *Philosopher {
 	return &Philosopher{
 		id:        id,
 		prodColor: color,
 	}
 }
 
-func (philosopher *Philosopher) Eat() {
+func (philosopher *Philosopher) eat() {
 	philosopher.prodColor.Printf("Philosopher %d is eating\n", philosopher.id)
 	eatTime := 1 + rand.Intn(1)
 	time.Sleep(time.Second * time.Duration(eatTime))
 	philosopher.prodColor.Printf("Philosopher %d is done eating\n", philosopher.id)
 }
 
-func (philosopher *Philosopher) Think() {
+func (philosopher *Philosopher) think() {
 	philosopher.prodColor.Printf("Philosopher %d is thinking\n", philosopher.id)
 	thinkTime := 1 + rand.Intn(2)
 	time.Sleep(time.Second * time.Duration(thinkTime))
 }
 
-func (philosopher *Philosopher) PutDownForks(left, right int) {
+func (philosopher *Philosopher) putDownForks(left, right int) {
 	// This function empties the left and right fork channel
-	PutDownFork(left)
-	PutDownFork(right)
+	putDownFork(left)
+	putDownFork(right)
 	philosopher.prodColor.Printf("Philosopher %d has put down forks %d and %d\n", philosopher.id, left, right)
 }
 
-func (philosopher *Philosopher) PickUpForks(left, right int) {
+func (philosopher *Philosopher) pickUpForks(left, right int) {
 
 	// Philosopher tries to pick up the left fork
-	PickUpFork(left)
+	pickUpFork(left)
 	philosopher.prodColor.Printf("Philosopher %d picked up fork %d\n", philosopher.id, left)
 
 	// Philosopher tries to pick up the right fork
-	PickUpFork(right)
+	pickUpFork(right)
 	philosopher.prodColor.Printf("Philosopher %d picked up fork %d\n", philosopher.id, right)
 }
 
@@ -77,16 +77,16 @@ func (philosopher *Philosopher) Hungry() {
 		}
 
 		// Philospher tries to pick up forks
-		philosopher.PickUpForks(left, right)
+		philosopher.pickUpForks(left, right)
 
 		// Now that both forks are with philosopher, he starts to eat
-		philosopher.Eat()
+		philosopher.eat()
 
 		// Once philospher is done eating, release both the forks
-		philosopher.PutDownForks(left, right)
+		philosopher.putDownForks(left, right)
 
 		// After releasing both forks, philosopher goes back to thinking
-		philosopher.Think()
+		philosopher.think()
 	}
 }
 
@@ -94,15 +94,15 @@ func main() {
 
 	fmt.Println("Stating the feast")
 
-	philosopher0 := CreatePhilosopher(0, color.New(color.FgBlue))
+	philosopher0 := createPhilosopher(0, color.New(color.FgBlue))
 
-	philosopher1 := CreatePhilosopher(1, color.New(color.FgGreen))
+	philosopher1 := createPhilosopher(1, color.New(color.FgGreen))
 
-	philosopher2 := CreatePhilosopher(2, color.New(color.FgMagenta))
+	philosopher2 := createPhilosopher(2, color.New(color.FgMagenta))
 
-	philosopher3 := CreatePhilosopher(3, color.New(color.FgRed))
+	philosopher3 := createPhilosopher(3, color.New(color.FgRed))
 
-	philosopher4 := CreatePhilosopher(4, color.New(color.FgYellow))
+	philosopher4 := createPhilosopher(4, color.New(color.FgYellow))
 
 	color.New(color.BgBlue)
 
