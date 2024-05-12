@@ -107,7 +107,7 @@ func (barber *Barber) serve(salon *Salon) {
 		if salonOpen {
 			// In case salon is open or customers are waiting, serve them
 			fmt.Printf("%s is cutting hair of %s \n", barber.name, customer.name)
-			time.Sleep(time.Second * time.Duration(customer.hairLength))
+			time.Sleep(time.Second * time.Duration(customer.hairLength-barber.skill))
 			fmt.Printf(" - Customer %s is all groomed\n", customer.name)
 		} else {
 			// In case salon is closed and no more customers are left to serve,
