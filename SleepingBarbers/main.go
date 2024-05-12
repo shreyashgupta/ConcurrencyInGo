@@ -24,50 +24,50 @@ type Salon struct {
 	chairs         chan *Customer
 	closedChan     chan bool
 	barberDoneChan chan bool
-	open           bool
+	shopOpen       bool
 	unservedCount  int
 	openDuration   time.Duration
 }
 
-func CreateSalon(capacity, numBarbers, openDurationSec int) *Salon {
+func createSalon(capacity, numBarbers, openDurationSec int) *Salon {
 	return &Salon{
 		numBarbers:     numBarbers,
 		chairs:         make(chan *Customer, capacity),
 		closedChan:     make(chan bool),
 		barberDoneChan: make(chan bool),
-		open:           false,
+		shopOpen:       false,
 		unservedCount:  0,
 		openDuration:   time.Second * time.Duration(openDurationSec),
 	}
 }
 
-func CreateCustomer(name string, hairLength int) *Customer {
+func createCustomer(name string, hairLength int) *Customer {
 	return &Customer{
 		name,
 		hairLength,
 	}
 }
 
-func CreateBarber(name string, skill int) *Barber {
+func createBarber(name string, skill int) *Barber {
 	return &Barber{
 		name,
 		skill,
 	}
 }
 
-func (salon *Salon) Open() {
+func (salon *Salon) open() {
 	// Open salon and make barbers available
 
-	salon.open = true
+	salon.shopOpen = true
 	color.Green("Salon is open for business !")
 
 	for i := 0; i < salon.numBarbers; i++ {
-		barber := CreateBarber(fake.FirstName(), 1+rand.Intn(2))
-		go barber.Serve(salon)
+		barber := createBarber(fake.FirstName(), 1+rand.Intn(2))
+		go barber.serve(salon)
 	}
 }
 
-func (salon *Salon) Close() {
+func (salon *Salon) close() {
 
 	color.Yellow("Salon is closing for the day")
 
@@ -76,7 +76,7 @@ func (salon *Salon) Close() {
 	close(salon.chairs)
 
 	// Set the flag to false to make sure barbers leave for the day once no customer is waiting
-	salon.open = false
+	salon.shopOpen = false
 
 	color.Magenta("Waiting for babers to finish up, still %d customers left\n", len(salon.chairs))
 	for i := 0; i < salon.numBarbers; i++ {
@@ -91,13 +91,13 @@ func (salon *Salon) Close() {
 	close(salon.barberDoneChan)
 }
 
-func (barber *Barber) LeaveForTheDay(salon *Salon) {
+func (barber *Barber) leaveForTheDay(salon *Salon) {
 	color.Magenta("%s is done for the day", barber.name)
 	// Signal that barber is done for the day
 	salon.barberDoneChan <- true
 }
 
-func (barber *Barber) Serve(salon *Salon) {
+func (barber *Barber) serve(salon *Salon) {
 	fmt.Printf("%s is available to attend customer!\n", barber.name)
 
 	for {
@@ -112,16 +112,16 @@ func (barber *Barber) Serve(salon *Salon) {
 		} else {
 			// In case salon is closed and no more customers are left to serve,
 			// leave for the day
-			barber.LeaveForTheDay(salon)
+			barber.leaveForTheDay(salon)
 			return
 		}
 	}
 }
 
-func CreateAndSendCustomers(salon *Salon) {
+func createAndSendCustomers(salon *Salon) {
 	// This function creates and sends customers to salon until the salon is open
 	for {
-		customer := CreateCustomer(fake.FirstName(), 2+rand.Intn(5))
+		customer := createCustomer(fake.FirstName(), 2+rand.Intn(5))
 
 		select {
 		case <-salon.closedChan:
@@ -138,18 +138,18 @@ func CreateAndSendCustomers(salon *Salon) {
 	}
 }
 
-func SignalEOD(salon *Salon) {
+func signalEOD(salon *Salon) {
 	// Close the salon after a specified duration
 	<-time.After(salon.openDuration)
-	salon.Close()
+	salon.close()
 }
 
 func main() {
 
-	salon := CreateSalon(10, 4, 20)
-	salon.Open()
+	salon := createSalon(10, 4, 20)
+	salon.open()
 
-	go CreateAndSendCustomers(salon)
+	go createAndSendCustomers(salon)
 
-	SignalEOD(salon)
+	signalEOD(salon)
 }
