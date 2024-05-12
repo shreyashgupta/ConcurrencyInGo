@@ -65,7 +65,7 @@ func (philosopher *Philosopher) pickUpForks(left, right int) {
 	philosopher.prodColor.Printf("Philosopher %d picked up fork %d\n", philosopher.id, right)
 }
 
-func (philosopher *Philosopher) Hungry() {
+func (philosopher *Philosopher) hungry() {
 	for {
 		philosopher.prodColor.Printf("Philosopher %d is hungry\n", philosopher.id)
 		left := philosopher.id
@@ -114,11 +114,11 @@ func main() {
 		make(chan bool, 1),
 	}
 
-	go philosopher0.Hungry()
-	go philosopher1.Hungry()
-	go philosopher2.Hungry()
-	go philosopher3.Hungry()
-	go philosopher4.Hungry()
+	go philosopher0.hungry()
+	go philosopher1.hungry()
+	go philosopher2.hungry()
+	go philosopher3.hungry()
+	go philosopher4.hungry()
 
 	// Block the main function to know if other go routines
 	// got into a deadlock
