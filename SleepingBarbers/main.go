@@ -14,13 +14,31 @@ type Customer struct {
 	hairLength int
 }
 
-func CreateAndSendCustomers(chairs chan Customer, leftCount *int) {
+type Barber struct {
+	name        string
+	barberColor *color.Color
+}
+
+func CreateCustomer(name string, hairLength int) *Customer {
+	return &Customer{
+		name:       name,
+		hairLength: hairLength,
+	}
+}
+
+func CreateBarber(name string, color *color.Color) *Barber {
+	return &Barber{
+		name:        name,
+		barberColor: color,
+	}
+}
+
+var chairs chan *Customer
+
+func CreateAndSendCustomers(leftCount *int) {
 
 	for {
-		customer := Customer{
-			name:       fake.FirstName(),
-			hairLength: 2 + rand.Intn(5),
-		}
+		customer := CreateCustomer(fake.FirstName(), 2+rand.Intn(5))
 
 		select {
 		case chairs <- customer:
@@ -33,26 +51,30 @@ func CreateAndSendCustomers(chairs chan Customer, leftCount *int) {
 
 }
 
-func ServeCustomers(chairs chan Customer, barberColor color.Attribute) {
-	colorPrint := color.New(barberColor).PrintfFunc()
+func (barber *Barber) Serve() {
+	barber.barberColor.Printf("%s is available to attend customer!\n", barber.name)
+
 	for {
 		customer := <-chairs
-		colorPrint("Attending customer %s \n", customer.name)
+		barber.barberColor.Printf("Attending customer %s \n", customer.name)
 		time.Sleep(time.Second * time.Duration(customer.hairLength))
-		colorPrint("Customer %s is all groomed\n", customer.name)
+		barber.barberColor.Printf("Customer %s is all groomed\n", customer.name)
 	}
 }
 
 func main() {
 	var leftCount = 0
-	chairs := make(chan Customer, 10)
+	chairs = make(chan *Customer, 10)
 
-	go ServeCustomers(chairs, color.FgBlue)
-	go ServeCustomers(chairs, color.FgGreen)
-	go ServeCustomers(chairs, color.FgCyan)
-	go ServeCustomers(chairs, color.FgHiMagenta)
+	barber0 := CreateBarber(fake.FirstName(), color.New(color.FgGreen))
+	barber1 := CreateBarber(fake.FirstName(), color.New(color.FgBlue))
+	barber2 := CreateBarber(fake.FirstName(), color.New(color.FgCyan))
 
-	go CreateAndSendCustomers(chairs, &leftCount)
+	go barber0.Serve()
+	go barber1.Serve()
+	go barber2.Serve()
+
+	go CreateAndSendCustomers(&leftCount)
 
 	for {
 		time.Sleep(10 * time.Second)
