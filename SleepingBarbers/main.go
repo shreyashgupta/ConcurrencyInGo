@@ -116,7 +116,7 @@ func CreateAndSendCustomers(salon *Salon) {
 			salon.unservedCount++
 			color.Red("No space available, customer %s is leaving\n", customer.name)
 		}
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Second * 1)
 	}
 }
 
